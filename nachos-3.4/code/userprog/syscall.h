@@ -1,4 +1,4 @@
-/* syscalls.h 
+﻿/* syscalls.h 
  * 	Nachos system call interface.  These are Nachos kernel operations
  * 	that can be invoked from user programs, by trapping to the kernel
  *	via the "syscall" instruction.
@@ -29,6 +29,12 @@
 #define SC_Close	8
 #define SC_Fork		9
 #define SC_Yield	10
+
+
+
+
+#define SC_Printf	11
+
 
 #ifndef IN_ASM
 
@@ -123,6 +129,12 @@ void Fork(void (*func)());
  * or not. 
  */
 void Yield();		
+
+
+
+void Printf(char* buffer);	
+
+
 
 #endif /* IN_ASM */
 

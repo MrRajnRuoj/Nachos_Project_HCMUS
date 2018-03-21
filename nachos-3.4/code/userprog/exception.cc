@@ -58,19 +58,58 @@ void increasePC() {
 	machine->WriteRegister(NextPCReg, counter + 4);
 }
 
-void
-ExceptionHandler(ExceptionType which)
+void createFile_Handler() {
+	int virtAddr;
+	char* fileName;
+
+	DEBUG('a', "\n SC_Create call ...");
+	DEBUG('a', "\n Reading virtual address of filename");
+
+	virtAddr = machine->ReadRegister(4);	// đọc tham số tên file
+
+	DEBUG('a', "\n Reading filename.");
+	fileName = User2System(virtAddr, MaxFileLength);	// Chuyển từ user space sang kernel space
+	if (fileName == NULL)
+	{
+		printf("\n Not enough memory in system");
+		DEBUG('a', "\n Not enough memory in system");
+		machine->WriteRegister(2, -1); // trả về lỗi cho chương trình người dùng
+									   
+		delete fileName;
+		return;
+	}
+	DEBUG('a', "\n Finish reading filename.");
+
+	if (!fileSystem->Create(fileName, 0))
+	{
+		printf("\n Error create file '%s'", fileName);
+		machine->WriteRegister(2, -1);
+		delete fileName;
+		return;
+	}
+	machine->WriteRegister(2, 0); // trả về cho chương trình người dùng thành công
+
+	delete fileName;
+}
+
+void printf_Handler() {
+	int virtAddr = machine->ReadRegister(4);
+	int oneChar = 0, i = 0;
+	char c = 0;
+
+	machine->ReadMem(virtAddr + i++, 1, &oneChar);
+	while (oneChar != 0) {
+		c = (char)oneChar;
+		gSynchConsole->Write(&c, 1);
+		machine->ReadMem(virtAddr + i++, 1, &oneChar);
+	}
+
+	machine->WriteRegister(2, 0);
+}
+
+void ExceptionHandler(ExceptionType which)
 {
 	int type = machine->ReadRegister(2);
-
-	//if ((which == SyscallException) && (type == SC_Halt)) {
-	//	DEBUG('a', "Shutdown, initiated by user program.\n");
-	//	interrupt->Halt();
-	//}
-	//else {
-	//	printf("Unexpected user mode exception %d %d\n", which, type);
-	//	ASSERT(FALSE);
-	//}
 
 	switch (which)
 	{
@@ -135,41 +174,8 @@ ExceptionHandler(ExceptionType which)
 			interrupt->Halt();
 			break;
 		case SC_Create:
-		{
-			int virtAddr;
-			char* fileName;
-			
-			DEBUG('a', "\n SC_Create call ...");
-			DEBUG('a', "\n Reading virtual address of filename");
-
-			virtAddr = machine->ReadRegister(4);
-
-			DEBUG('a', "\n Reading filename.");
-			fileName = User2System(virtAddr, MaxFileLength);
-			if (fileName == NULL)
-			{
-				printf("\n Not enough memory in system");
-				DEBUG('a', "\n Not enough memory in system");
-				machine->WriteRegister(2, -1); // trả về lỗi cho chương
-											   // trình người dùng
-				delete fileName;
-				return;
-			}
-			DEBUG('a', "\n Finish reading filename.");
-
-			if (!fileSystem->Create(fileName, 0))
-			{
-				printf("\n Error create file '%s'", fileName);
-				machine->WriteRegister(2, -1);
-				delete fileName;
-				return;
-			}
-			machine->WriteRegister(2, 0); // trả về cho chương trình
-										  // người dùng thành công
-			
-			delete fileName;
+			createFile_Handler();
 			break;
-		}
 		case SC_Open:
 			DEBUG('a', "\n SC_Open Exception");
 			printf("\n\n SC_Open Exception");
@@ -200,6 +206,9 @@ ExceptionHandler(ExceptionType which)
 			printf("\n\n SC_Yield Exception");
 			interrupt->Halt();
 			break;
+		case SC_Printf:
+			printf_Handler();
+			break;
 		default:
 			printf("\n Unexpected user mode exception (%d %d)", which, type);
 			ASSERT(FALSE);
@@ -213,59 +222,4 @@ ExceptionHandler(ExceptionType which)
 		break; 
 	}
 	
-}
-
-/*
-* Input:
-*	- User space address (int)
-*	- Limit of buffer (int)
-* Output:
-*	- Buffer (char*)
-* Purpose: Copy buffer from User memory space to System memory space
-*/
-
-char* User2System(int virtAddr, int limit)
-{
-	int i;	// index
-	int oneChar;
-	char* kernelBuf = NULL;
-	kernelBuf = new char[limit + 1];	// need for terminal string
-	if (kernelBuf == NULL)
-		return kernelBuf;
-	memset(kernelBuf, 0, limit + 1);
-
-	for (i = 0; i < limit; i++)
-	{
-		machine->ReadMem(virtAddr + i, 1, &oneChar);
-		kernelBuf[i] = (char)oneChar;
-
-		if (oneChar == 0)
-			break;
-	}
-	return kernelBuf;
-}
-
-
-/*
-* Input:
-*	- User space address (int)
-*	- Limit of buffer (int)
-*	- Buffer (char[])
-* Output:
-*	- Number of bytes copied (int)
-* Purpose: Copy buffer from System memory space to User memory space
-*/
-
-int System2User(int virtAddr, int len, char* buffer)
-{
-	if (len < 0) return -1;
-	if (len == 0)return len;
-	int i = 0;
-	int oneChar = 0;
-	do {
-		oneChar = (int)buffer[i];
-		machine->WriteMem(virtAddr + i, 1, oneChar);
-		i++;
-	} while (i < len && oneChar != 0);
-	return i;
 }

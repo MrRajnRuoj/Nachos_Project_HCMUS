@@ -130,6 +130,18 @@ Yield:
 	j	$31
 	.end Yield
 
+/* Mot so syscall khac */
+
+	.globl Printf
+	.ent	Printf
+Printf:
+	addiu $2,$0,SC_Printf
+	syscall
+	j	$31
+	.end Printf
+
+/* ----------------------------- */
+
 /* dummy function to keep gcc happy */
         .globl  __main
         .ent    __main
