@@ -1,4 +1,4 @@
-﻿/* syscalls.h 
+/* syscalls.h 
  * 	Nachos system call interface.  These are Nachos kernel operations
  * 	that can be invoked from user programs, by trapping to the kernel
  *	via the "syscall" instruction.
@@ -34,7 +34,6 @@
 
 
 #define SC_Printf	11
-
 
 #ifndef IN_ASM
 
@@ -92,7 +91,7 @@ typedef int OpenFileID;
 #define ConsoleInput	0  
 #define ConsoleOutput	1  
  
-/* Create a Nachos file, with "name" and return result: -1 for fail, 0 for success */
+/* Create a Nachos file, with "name" */
 int Create(char *name);
 
 /* Open the Nachos file "name", and return an "OpenFileId" that can 
@@ -101,7 +100,7 @@ int Create(char *name);
 OpenFileID Open(char *name, int type);
 
 /* Write "size" bytes from "buffer" to the open file. */
-void Write(char *buffer, int size, OpenFileId id);
+void Write(char *buffer, int charcount, OpenFileID id);
 
 /* Read "size" bytes from the open file into "buffer".  
  * Return the number of bytes actually read -- if the open file isn't
@@ -109,10 +108,10 @@ void Write(char *buffer, int size, OpenFileId id);
  * characters to read, return whatever is available (for I/O devices, 
  * you should always wait until you can return at least one character).
  */
-int Read(char *buffer, int size, OpenFileId id);
+int Read(char *buffer, int size, OpenFileID id);
 
 /* Close the file, we're done reading and writing to it. */
-void Close(OpenFileId id);
+void CloseFile(OpenFileID id);
 
 
 
@@ -130,11 +129,7 @@ void Fork(void (*func)());
  */
 void Yield();		
 
-
-
-void Printf(char* buffer);	
-
-
+void Printf(char* buffer);
 
 #endif /* IN_ASM */
 

@@ -74,7 +74,7 @@ void createFile_Handler() {
 		printf("\nNot enough memory in system");
 		DEBUG('a', "\nNot enough memory in system");
 		machine->WriteRegister(2, -1); // trả về lỗi cho chương trình người dùng
-									   
+
 		delete fileName;
 		return;
 	}
@@ -110,12 +110,12 @@ void printf_Handler() {
 void openFile_Handler() {
 	int virtAddr = machine->ReadRegister(4);
 	int type = machine->ReadRegister(5);
-	char* fileName = User2System(virtAddr, MaxFileLength);	
+	char* fileName = User2System(virtAddr, MaxFileLength);
 
 	if (fileName == NULL) {
 		printf("\nLoi: Khong du bo nho trong he thong!");
-		machine->WriteRegister(2, -1); 
-	} 
+		machine->WriteRegister(2, -1);
+	}
 	else if (type < 0 || type > 3) {
 		printf("\nLoi: Type khong hop le!");
 		machine->WriteRegister(2, -1);
@@ -126,8 +126,8 @@ void openFile_Handler() {
 	}
 	else {
 		if (type == 0 || type == 1) {
-			OpenFile* currOpenFile = fileSystem->Open(fileName, type);
-			if (currOpenFile != NULL) {
+			fileSystem->openFileTable[fileSystem->index] = fileSystem->Open(fileName, type);
+			if (fileSystem->openFileTable[fileSystem->index - 1] != NULL) {
 				printf("\nMo file thanh cong!");
 				machine->WriteRegister(2, fileSystem->index - 1);
 			}
@@ -151,7 +151,70 @@ void openFile_Handler() {
 	}
 
 	delete[] fileName;
-}                                                                                                                          
+}
+
+void closeFile_Handler() {
+	int fileID = machine->ReadRegister(4);
+
+	if (fileID < 0 || fileID > 9 || fileSystem->openFileTable[fileID] == NULL) {
+		printf("\nLoi: File khong ton tai!");
+		machine->WriteRegister(2, -1);
+	}
+	else {
+		delete fileSystem->openFileTable[fileID];
+		fileSystem->openFileTable[fileID] = NULL;
+		machine->WriteRegister(2, 0);
+	}
+
+}
+
+void readFile_Handler() {
+	int virtAddr = machine->ReadRegister(4);
+	int charcount = machine->ReadRegister(5);
+	int fID = machine->ReadRegister(6);
+	char* buffer = new char[charcount];
+
+	if (charcount < 1) {
+		printf("\nLoi: Doc it nhat 1 ki tu!");
+		machine->WriteRegister(2, -1);
+	}
+	else if (fID < 0 || fID > 9) {
+		printf("\nLoi: File khong ton tai!");
+		machine->WriteRegister(2, -1);
+	}
+	else if (fID == 1) {	// stdout
+		printf("\nLoi: Khong the doc \"Console Output\"!");
+		machine->WriteRegister(2, -1);
+	}
+	else {
+		int size;
+		if (fID == 0) {	// Read qua console input
+			size = gSynchConsole->Read(buffer, charcount);
+			System2User(virtAddr, size, buffer);
+			if (size == charcount) {
+				machine->WriteRegister(2, -2);
+			}
+			else {
+				machine->WriteRegister(2, size);
+			}
+		}
+		else {
+			size = fileSystem->openFileTable[fID]->Read(buffer, charcount);
+			int fileLength = fileSystem->openFileTable[fID]->Length();
+			System2User(virtAddr, size, buffer);
+			if (size == fileLength) {
+				printf("\nSize: %d", size);
+				machine->WriteRegister(2, -2);
+			}
+			else {
+				machine->WriteRegister(2, size);
+			}
+		}
+	}
+
+	delete[] buffer;
+}
+
 void ExceptionHandler(ExceptionType which)
 {
 	int type = machine->ReadRegister(2);
@@ -161,108 +224,107 @@ void ExceptionHandler(ExceptionType which)
 	case NoException:
 		break;
 	case PageFaultException:
-		DEBUG('a' , "\n No valid translation found.");
-		printf("\n\n No valid translation found.");
+		DEBUG('a', "\nNo valid translation found.");
+		printf("\n\nNo valid translation found.");
 		ASSERT(FALSE);
 		break;
 	case ReadOnlyException:
-		DEBUG('a', "\n Write attempted to page marked: read - only.");
-		printf("\n\n Write attempted to page marked: read - only.");
+		DEBUG('a', "\nWrite attempted to page marked: read - only.");
+		printf("\n\nWrite attempted to page marked: read - only.");
 		ASSERT(FALSE);
 		break;
 	case BusErrorException:
-		DEBUG('a', "\n Translation resulted in an invalid physical address.");
-		printf("\n\n Translation resulted in an invalid physical address.");
+		DEBUG('a', "\nTranslation resulted in an invalid physical address.");
+		printf("\n\nTranslation resulted in an invalid physical address.");
 		ASSERT(FALSE);
 		break;
 	case AddressErrorException:
-		DEBUG('a', "\n Unaligned reference or one that was beyond the end of the address space.");
-		printf("\n\n Unaligned reference or one that was beyond the end of the address space.");
+		DEBUG('a', "\nUnaligned reference or one that was beyond the end of the address space.");
+		printf("\n\nUnaligned reference or one that was beyond the end of the address space.");
 		ASSERT(FALSE);
 		break;
 	case OverflowException:
-		DEBUG('a', "\n Integer overflow in add or sub.");
-		printf("\n\n Integer overflow in add or sub.");
+		DEBUG('a', "\nInteger overflow in add or sub.");
+		printf("\n\nInteger overflow in add or sub.");
 		ASSERT(FALSE);
 		break;
 	case IllegalInstrException:
-		DEBUG('a', "\n Integer overflow in add or sub.");
-		printf("\n\n Integer overflow in add or sub.");
+		DEBUG('a', "\nInteger overflow in add or sub.");
+		printf("\n\nInteger overflow in add or sub.");
 		ASSERT(FALSE);
 		break;
 	case NumExceptionTypes:
-		DEBUG('a', "\n Num Exception Types.");
-		printf("\n\n Num Exception Types.");
+		DEBUG('a', "\nNum Exception Types.");
+		printf("\n\nNum Exception Types.");
 		ASSERT(FALSE);
 		break;
 	case SyscallException:
 		switch (type)
 		{
 		case SC_Halt:
-			DEBUG('a', "\n Shutdown, initiated by user program.");
-			printf("\n\n Shutdown, initiated by user program.");
+			DEBUG('a', "\nShutdown, initiated by user program.");
+			printf("\n\nShutdown, initiated by user program.");
 			interrupt->Halt();
 			break;
 		case SC_Exit:
-			DEBUG('a', "\n SC_Exit Exception");
-			printf("\n\n SC_Exit Exception\n");
+			DEBUG('a', "\nSC_Exit Exception");
+			printf("\n\nSC_Exit Exception\n");
 			interrupt->Halt();
 			break;
 		case SC_Exec:
-			DEBUG('a', "\n SC_Exec Exception");
-			printf("\n\n SC_Exec Exception");
+			DEBUG('a', "\nSC_Exec Exception");
+			printf("\n\nSC_Exec Exception");
 			interrupt->Halt();
 			break;
 		case SC_Join:
-			DEBUG('a', "\n SC_Join Exception");
-			printf("\n\n SC_Join Exception");
+			DEBUG('a', "\nSC_Join Exception");
+			printf("\n\nSC_Join Exception");
 			interrupt->Halt();
 			break;
 		case SC_Create:
 			createFile_Handler();
 			break;
 		case SC_Open:
+			DEBUG('a', "\nBefore openFile_Handler");
 			openFile_Handler();
+			DEBUG('a', "\nAfter openFIle_Handler");
 			break;
 		case SC_Read:
-			DEBUG('a', "\n SC_Read Exception");
-			printf("\n\n SC_Read Exception");
-			interrupt->Halt();
+			readFile_Handler();
 			break;
 		case SC_Write:
-			DEBUG('a', "\n SC_Write Exception");
-			printf("\n\n SC_Write Exception");
+			DEBUG('a', "\nSC_Write Exception");
+			printf("\n\nSC_Write Exception");
 			interrupt->Halt();
 			break;
 		case SC_Close:
-			DEBUG('a', "\n SC_Close Exception");
-			printf("\n\n SC_Close Exception");
-			interrupt->Halt();
+			closeFile_Handler();
 			break;
 		case SC_Fork:
-			DEBUG('a', "\n SC_Fork Exception");
-			printf("\n\n SC_Fork Exception");
+			DEBUG('a', "\nSC_Fork Exception");
+			printf("\n\nSC_Fork Exception");
 			interrupt->Halt();
 			break;
 		case SC_Yield:
-			DEBUG('a', "\n SC_Yield Exception");
-			printf("\n\n SC_Yield Exception");
+			DEBUG('a', "\nSC_Yield Exception");
+			printf("\n\nSC_Yield Exception");
 			interrupt->Halt();
 			break;
 		case SC_Printf:
 			printf_Handler();
 			break;
 		default:
-			printf("\n Unexpected user mode exception (%d %d)", which, type);
+			printf("\nUnexpected user mode exception (%d %d)", which, type);
 			ASSERT(FALSE);
 			break;
 		}
+		
 		increasePC();
 		break;
 	default:
-		printf("\n Unexpected user mode exception (%d %d)", which, type);
+		printf("\nUnexpected user mode exception (%d %d)", which, type);
 		ASSERT(FALSE);
-		break; 
+		break;
 	}
-	
+
 }

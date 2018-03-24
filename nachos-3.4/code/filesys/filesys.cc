@@ -253,22 +253,24 @@ OpenFile* FileSystem::Open(char *name) {
 	if (sector >= 0)
 		this->openFileTable[this->index] = new OpenFile(sector);	// name was found in directory 
 	delete directory;
+	this->index++;
 
-	return this->openFileTable[this->index++];				// return NULL if not found
+	return this->openFileTable[this->index -1];				// return NULL if not found
 }
 
 OpenFile* FileSystem::Open(char *name, int type) {
 	Directory *directory = new Directory(NumDirEntries);
 	int sector;
-
+	
 	DEBUG('f', "Opening file %s\n", name);
 	directory->FetchFrom(directoryFile);
 	sector = directory->Find(name);
 	if (sector >= 0)
 		this->openFileTable[this->index] = new OpenFile(sector, type);	// name was found in directory 
 	delete directory;
+	this->index++;
 
-	return this->openFileTable[this->index++];				// return NULL if not found
+	return this->openFileTable[this->index -1];				// return NULL if not found
 }
 //----------------------------------------------------------------------
 // FileSystem::Remove
