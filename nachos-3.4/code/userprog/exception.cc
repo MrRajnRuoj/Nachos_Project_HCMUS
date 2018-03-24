@@ -62,27 +62,27 @@ void createFile_Handler() {
 	int virtAddr;
 	char* fileName;
 
-	DEBUG('a', "\n SC_Create call ...");
-	DEBUG('a', "\n Reading virtual address of filename");
+	DEBUG('a', "\nSC_Create call ...");
+	DEBUG('a', "\nReading virtual address of filename");
 
 	virtAddr = machine->ReadRegister(4);	// đọc tham số tên file
 
-	DEBUG('a', "\n Reading filename.");
+	DEBUG('a', "\nReading filename.");
 	fileName = User2System(virtAddr, MaxFileLength);	// Chuyển từ user space sang kernel space
 	if (fileName == NULL)
 	{
-		printf("\n Not enough memory in system");
-		DEBUG('a', "\n Not enough memory in system");
+		printf("\nNot enough memory in system");
+		DEBUG('a', "\nNot enough memory in system");
 		machine->WriteRegister(2, -1); // trả về lỗi cho chương trình người dùng
 									   
 		delete fileName;
 		return;
 	}
-	DEBUG('a', "\n Finish reading filename.");
+	DEBUG('a', "\nFinish reading filename.");
 
 	if (!fileSystem->Create(fileName, 0))
 	{
-		printf("\n Error create file '%s'", fileName);
+		printf("\nError create file '%s'", fileName);
 		machine->WriteRegister(2, -1);
 		delete fileName;
 		return;
@@ -113,35 +113,39 @@ void openFile_Handler() {
 	char* fileName = User2System(virtAddr, MaxFileLength);	
 
 	if (fileName == NULL) {
-		printf("\n Loi: Khong du bo nho trong he thong!");
+		printf("\nLoi: Khong du bo nho trong he thong!");
 		machine->WriteRegister(2, -1); 
 	} 
 	else if (type < 0 || type > 3) {
-		printf("\n Loi: Type khong hop le!");
+		printf("\nLoi: Type khong hop le!");
 		machine->WriteRegister(2, -1);
 	}
 	else if (fileSystem->index < 0 || fileSystem->index > 9) {
-		printf("\n Loi: Khong du bo nho quan ly file!");
+		printf("\nLoi: Khong du bo nho quan ly file!");
 		machine->WriteRegister(2, -1);
 	}
 	else {
 		if (type == 0 || type == 1) {
 			OpenFile* currOpenFile = fileSystem->Open(fileName, type);
 			if (currOpenFile != NULL) {
-				printf("\n Mo file thanh cong!");
+				printf("\nMo file thanh cong!");
 				machine->WriteRegister(2, fileSystem->index - 1);
+			}
+			else {
+				printf("\nLoi: File khong ton tai!");
+				machine->WriteRegister(2, -1);
 			}
 		}
 		else if (type == 2 || strcpy(fileName, "stdin") == 0) {
-			printf("\n Stdin mode!");
+			printf("\nStdin mode!");
 			machine->WriteRegister(2, 0);
 		}
 		else if (type == 3 || strcpy(fileName, "stdout") == 0) {
-			printf("\n Stdout mode!");
+			printf("\nStdout mode!");
 			machine->WriteRegister(2, 1);
 		}
 		else {
-			printf("\n Loi: Tao file khong thanh cong.");
+			printf("\nLoi: Tao file khong thanh cong.");
 			machine->WriteRegister(2, -1);
 		}
 	}
