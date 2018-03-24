@@ -48,7 +48,7 @@
 //	are in machine.h.
 //----------------------------------------------------------------------
 
-#define MaxFileLength 32
+#define MaxFileLength 256
 
 void increasePC() {
 	int counter = machine->ReadRegister(PCReg);
@@ -107,6 +107,47 @@ void printf_Handler() {
 	machine->WriteRegister(2, 0);
 }
 
+void openFile_Handler() {
+	int virtAddr = machine->ReadRegister(4);
+	int type = machine->ReadRegister(5);
+	char* fileName = User2System(virtAddr, MaxFileLength);	
+
+	if (fileName == NULL) {
+		printf("\n Loi: Khong du bo nho trong he thong!");
+		machine->WriteRegister(2, -1); 
+	} 
+	else if (type < 0 || type > 3) {
+		printf("\n Loi: Type khong hop le!");
+		machine->WriteRegister(2, -1);
+	}
+	else if (fileSystem->index < 0 || fileSystem->index > 9) {
+		printf("\n Loi: Khong du bo nho quan ly file!");
+		machine->WriteRegister(2, -1);
+	}
+	else {
+		if (type == 0 || type == 1) {
+			OpenFile* currOpenFile = fileSystem->Open(fileName, type);
+			if (currOpenFile != NULL) {
+				printf("\n Mo file thanh cong!");
+				machine->WriteRegister(2, fileSystem->index - 1);
+			}
+		}
+		else if (type == 2 || strcpy(fileName, "stdin") == 0) {
+			printf("\n Stdin mode!");
+			machine->WriteRegister(2, 0);
+		}
+		else if (type == 3 || strcpy(fileName, "stdout") == 0) {
+			printf("\n Stdout mode!");
+			machine->WriteRegister(2, 1);
+		}
+		else {
+			printf("\n Loi: Tao file khong thanh cong.");
+			machine->WriteRegister(2, -1);
+		}
+	}
+
+	delete[] fileName;
+}                                                                                                                          
 void ExceptionHandler(ExceptionType which)
 {
 	int type = machine->ReadRegister(2);
@@ -160,7 +201,7 @@ void ExceptionHandler(ExceptionType which)
 			break;
 		case SC_Exit:
 			DEBUG('a', "\n SC_Exit Exception");
-			printf("\n\n SC_Exit Exception");
+			printf("\n\n SC_Exit Exception\n");
 			interrupt->Halt();
 			break;
 		case SC_Exec:
@@ -177,9 +218,7 @@ void ExceptionHandler(ExceptionType which)
 			createFile_Handler();
 			break;
 		case SC_Open:
-			DEBUG('a', "\n SC_Open Exception");
-			printf("\n\n SC_Open Exception");
-			interrupt->Halt();
+			openFile_Handler();
 			break;
 		case SC_Read:
 			DEBUG('a', "\n SC_Read Exception");

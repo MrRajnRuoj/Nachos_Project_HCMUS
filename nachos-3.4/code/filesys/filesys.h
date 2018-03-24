@@ -1,4 +1,4 @@
-// filesys.h 
+﻿// filesys.h 
 //	Data structures to represent the Nachos file system.
 //
 //	A file system is a set of files stored on disk, organized
@@ -39,57 +39,98 @@
 #include "openfile.h"
 
 #ifdef FILESYS_STUB 		// Temporarily implement file system calls as 
-				// calls to UNIX, until the real file system
-				// implementation is available
+							// calls to UNIX, until the real file system
+							// implementation is available
 class FileSystem {
-  public:
-    FileSystem(bool format) {}
+public:
+	OpenFile** openFileTable;	// Bang mo ta file
+	char index;
 
-    bool Create(char *name, int initialSize) { 
-	int fileDescriptor = OpenForWrite(name);
+	FileSystem(bool format) {
+		this->tableSize = 10;
+		this->openFileTable = new OpenFile*[tableSize];
+		this->index = 0;
 
-	if (fileDescriptor == -1) return FALSE;
-	Close(fileDescriptor); 
-	return TRUE; 
+		for (int i = 0; i < tableSize; ++i) {
+			this->openFileTable[i] = NULL;
+		}
+
+		// Khoi tao bang OpenFile voi 2 vi tri dau cho stdin va stdout
+		this->Create("stdin", 0);
+		this->Create("stdout", 0);
+		this->Open("stdin", 2);
+		this->Open("stdout", 3);
 	}
 
-    OpenFile* Open(char *name) {
-	  int fileDescriptor = OpenForReadWrite(name, FALSE);
+	~FileSystem() {
+		for (int i = 0; i < this->tableSize; ++i) {
+			delete openFileTable[i];
+		}
+		delete[] openFileTable;
+	}
 
-	  if (fileDescriptor == -1) return NULL;
-	  return new OpenFile(fileDescriptor);
-      }
+	bool Create(char *name, int initialSize) {
+		int fileDescriptor = OpenForWrite(name);
 
-    bool Remove(char *name) { return Unlink(name) == 0; }
+		if (fileDescriptor == -1) return FALSE;
+		Close(fileDescriptor);
+		return TRUE;
+	}
 
+	OpenFile* Open(char *name) {
+		int fileDescriptor = OpenForReadWrite(name, FALSE);
+
+		if (fileDescriptor == -1) return NULL;
+		this->index++;
+		return new OpenFile(fileDescriptor);
+	}
+	
+	OpenFile* Open(char* name, int type) {
+		int fileDescriptor = OpenForReadWrite(name, FALSE);
+
+		if (fileDescriptor == -1) return NULL;
+		this->index++;
+		return new OpenFile(fileDescriptor, type);
+	}
+
+	bool Remove(char *name) { return Unlink(name) == 0; }
+
+private:
+	int tableSize;
 };
 
 #else // FILESYS
 class FileSystem {
-  public:
-    FileSystem(bool format);		// Initialize the file system.
-					// Must be called *after* "synchDisk" 
-					// has been initialized.
-    					// If "format", there is nothing on
-					// the disk, so initialize the directory
-    					// and the bitmap of free blocks.
+public:
+	OpenFile** openFileTable;	// Bang mo ta file
+	char index;
 
-    bool Create(char *name, int initialSize);  	
-					// Create a file (UNIX creat)
+	FileSystem(bool format);		// Initialize the file system.
+									// Must be called *after* "synchDisk" 
+									// has been initialized.
+									// If "format", there is nothing on
+									// the disk, so initialize the directory
+									// and the bitmap of free blocks.
 
-    OpenFile* Open(char *name); 	// Open a file (UNIX open)
+	bool Create(char *name, int initialSize);	// Create a file (UNIX creat)
 
-    bool Remove(char *name);  		// Delete a file (UNIX unlink)
+	OpenFile* Open(char *name); 	// Open a file (UNIX open)
 
-    void List();			// List all the files in the file system
+	OpenFile* Open(char *name, int type); // Mo file voi type tuong ung
 
-    void Print();			// List all the files and their contents
+	bool Remove(char *name);  		// Delete a file (UNIX unlink)
 
-  private:
-   OpenFile* freeMapFile;		// Bit map of free disk blocks,
-					// represented as a file
-   OpenFile* directoryFile;		// "Root" directory -- list of 
-					// file names, represented as a file
+	void List();					// List all the files in the file system
+
+	void Print();					// List all the files and their contents
+
+private:
+	OpenFile* freeMapFile;		// Bit map of free disk blocks,
+								// represented as a file
+	OpenFile* directoryFile;	// "Root" directory -- list of 
+								// file names, represented as a file
+
+	int tableSize;
 };
 
 #endif // FILESYS
