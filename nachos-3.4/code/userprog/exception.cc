@@ -126,8 +126,8 @@ void openFile_Handler() {
 	}
 	else {
 		if (type == 0 || type == 1) {
-			fileSystem->openFileTable[fileSystem->index] = fileSystem->Open(fileName, type);
-			if (fileSystem->openFileTable[fileSystem->index - 1] != NULL) {
+			OpenFile* currOpenFile = fileSystem->Open(fileName, type);
+			if (currOpenFile != NULL) {
 				printf("\nMo file thanh cong!");
 				machine->WriteRegister(2, fileSystem->index - 1);
 			}
@@ -137,10 +137,12 @@ void openFile_Handler() {
 			}
 		}
 		else if (type == 2 || strcpy(fileName, "stdin") == 0) {
+			fileSystem->openFileTable[fileSystem->index] = fileSystem->Open(fileName, type);
 			printf("\nStdin mode!");
 			machine->WriteRegister(2, 0);
 		}
 		else if (type == 3 || strcpy(fileName, "stdout") == 0) {
+			fileSystem->openFileTable[fileSystem->index] = fileSystem->Open(fileName, type);
 			printf("\nStdout mode!");
 			machine->WriteRegister(2, 1);
 		}
@@ -188,7 +190,7 @@ void readFile_Handler() {
 	}
 	else {
 		int size;
-		if (fID == 0) {	// Read qua console input
+		if (fID == 0) {	// Doc qua console input
 			size = gSynchConsole->Read(buffer, charcount);
 			System2User(virtAddr, size, buffer);
 			if (size == charcount) {
@@ -198,11 +200,65 @@ void readFile_Handler() {
 				machine->WriteRegister(2, size);
 			}
 		}
-		else {
+		else {	// Doc file
 			size = fileSystem->openFileTable[fID]->Read(buffer, charcount);
 			int fileLength = fileSystem->openFileTable[fID]->Length();
 			System2User(virtAddr, size, buffer);
 			if (size == fileLength) {
+				printf("\nSize: %d", size);
+				machine->WriteRegister(2, -2);
+			}
+			else {
+				machine->WriteRegister(2, size);
+			}
+		}
+	}
+
+	delete[] buffer;
+}
+
+void writeFile_Handler() {
+	int virtAddr = machine->ReadRegister(4);
+	int charcount = machine->ReadRegister(5);
+	int fID = machine->ReadRegister(6);
+	char* buffer;
+
+	if (charcount < 1) {
+		printf("\nLoi: Ghi it nhat 1 ki tu!");
+		machine->WriteRegister(2, -1);
+	}
+	else if (fID < 0 || fID > 9) {
+		printf("\nLoi: File khong ton tai!");
+		machine->WriteRegister(2, -1);
+	}
+	else if (fID == 0) {	// stdin mode
+		printf("\nLoi: Khong the ghi \"Console Input\"!");
+		machine->WriteRegister(2, -1);
+	}
+	else if (fileSystem->openFileTable[fID]->type == 1 || fileSystem->openFileTable[fID]->type == 2) {
+		printf("\nLoi: Khong the ghi vao file chi doc!");
+		machine->WriteRegister(2, -1);
+	}
+	else {
+		int size;
+		buffer = User2System(virtAddr, charcount);
+		if (fID == 1) {	// Ghi vao console
+			size = gSynchConsole->Write(buffer, charcount);
+			if (size == charcount) {
+				machine->WriteRegister(2, -2);
+			}
+			else {	
+				machine->WriteRegister(2, size);
+			}
+		}
+		else { // Ghi file
+			if (fileSystem->openFileTable[fID] == NULL) {
+				printf("\nFile Null");
+			}
+			size = fileSystem->openFileTable[fID]->Write(buffer, charcount);
+			int buffLength = strlen(buffer);
+
+			if (size == buffLength) {
 				printf("\nSize: %d", size);
 				machine->WriteRegister(2, -2);
 			}
@@ -285,17 +341,13 @@ void ExceptionHandler(ExceptionType which)
 			createFile_Handler();
 			break;
 		case SC_Open:
-			DEBUG('a', "\nBefore openFile_Handler");
 			openFile_Handler();
-			DEBUG('a', "\nAfter openFIle_Handler");
 			break;
 		case SC_Read:
 			readFile_Handler();
 			break;
 		case SC_Write:
-			DEBUG('a', "\nSC_Write Exception");
-			printf("\n\nSC_Write Exception");
-			interrupt->Halt();
+			writeFile_Handler();
 			break;
 		case SC_Close:
 			closeFile_Handler();

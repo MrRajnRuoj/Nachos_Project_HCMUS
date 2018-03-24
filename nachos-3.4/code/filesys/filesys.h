@@ -81,16 +81,18 @@ public:
 		int fileDescriptor = OpenForReadWrite(name, FALSE);
 
 		if (fileDescriptor == -1) return NULL;
-		this->index++;
-		return new OpenFile(fileDescriptor);
+		this->openFileTable[this->index] = new OpenFile(fileDescriptor);
+		
+		return this->openFileTable[this->index++];
 	}
 	
 	OpenFile* Open(char* name, int type) {
 		int fileDescriptor = OpenForReadWrite(name, FALSE);
 
 		if (fileDescriptor == -1) return NULL;
-		this->index++;
-		return new OpenFile(fileDescriptor, type);
+		this->openFileTable[this->index] = new OpenFile(fileDescriptor, type);
+	
+		return this->openFileTable[this->index++];
 	}
 
 	bool Remove(char *name) { return Unlink(name) == 0; }
