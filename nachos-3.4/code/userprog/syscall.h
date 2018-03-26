@@ -30,10 +30,11 @@
 #define SC_Fork		9
 #define SC_Yield	10
 
-
-
-
+// Mot so syscall khac
 #define SC_Printf	11
+#define SC_Scanf	12
+#define SC_Seek		13
+
 
 #ifndef IN_ASM
 
@@ -114,7 +115,6 @@ int Read(char *buffer, int size, OpenFileID id);
 void CloseFile(OpenFileID id);
 
 
-
 /* User-level thread operations: Fork and Yield.  To allow multiple
  * threads to run within a user program. 
  */
@@ -130,6 +130,8 @@ void Fork(void (*func)());
 void Yield();		
 
 void Printf(char* buffer);
+void Scanf(char* buffer, int length);
+int Seek(int pos, OpenFileID id);
 
 #endif /* IN_ASM */
 

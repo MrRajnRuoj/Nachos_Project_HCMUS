@@ -44,27 +44,25 @@
 class FileSystem {
 public:
 	OpenFile** openFileTable;	// Bang mo ta file
-	char index;
 
 	FileSystem(bool format) {
-		this->tableSize = 10;
-		this->openFileTable = new OpenFile*[tableSize];
-		this->index = 0;
+		this->openFileTable = new OpenFile*[10];
 
-		for (int i = 0; i < tableSize; ++i) {
+		for (int i = 0; i < 10; ++i) {
 			this->openFileTable[i] = NULL;
 		}
 
 		// Khoi tao bang OpenFile voi 2 vi tri dau cho stdin va stdout
 		this->Create("stdin", 0);
 		this->Create("stdout", 0);
-		this->Open("stdin", 2);
-		this->Open("stdout", 3);
+		this->openFileTable[0] = this->Open("stdin", 2);
+		this->openFileTable[1] = this->Open("stdout", 3);
 	}
 
 	~FileSystem() {
-		for (int i = 0; i < this->tableSize; ++i) {
+		for (int i = 0; i < 10; ++i) {
 			delete openFileTable[i];
+			openFileTable[i] = NULL;
 		}
 		delete[] openFileTable;
 	}
@@ -81,31 +79,45 @@ public:
 		int fileDescriptor = OpenForReadWrite(name, FALSE);
 
 		if (fileDescriptor == -1) return NULL;
-		this->openFileTable[this->index] = new OpenFile(fileDescriptor);
-		
-		return this->openFileTable[this->index++];
+		return new OpenFile(fileDescriptor);
 	}
-	
+
 	OpenFile* Open(char* name, int type) {
 		int fileDescriptor = OpenForReadWrite(name, FALSE);
-
 		if (fileDescriptor == -1) return NULL;
-		this->openFileTable[this->index] = new OpenFile(fileDescriptor, type);
-	
-		return this->openFileTable[this->index++];
+
+		return new OpenFile(fileDescriptor, type);
 	}
 
 	bool Remove(char *name) { return Unlink(name) == 0; }
 
-private:
-	int tableSize;
+	int AddToTable(OpenFile* openFile) {
+		int result = -1;
+		for (int i = 2; i < 10; i++) {
+			if (openFileTable[i] == NULL) {
+				openFileTable[i] = openFile;
+				result = i;
+				break;
+			}
+		}
+			
+		return result;
+	}
+
+	void DelFromTable(int fID) {
+		if (fID > 1 && fID < 10) {
+			if (openFileTable[fID] != NULL) {
+				delete openFileTable[fID];
+				openFileTable[fID] = NULL;
+			}
+		}
+	}
 };
 
 #else // FILESYS
 class FileSystem {
 public:
 	OpenFile** openFileTable;	// Bang mo ta file
-	char index;
 
 	FileSystem(bool format);		// Initialize the file system.
 									// Must be called *after* "synchDisk" 
@@ -126,13 +138,14 @@ public:
 
 	void Print();					// List all the files and their contents
 
+	int AddToTable(OpenFile* openFile);
+	void DelFromTable(int fID);
+
 private:
 	OpenFile* freeMapFile;		// Bit map of free disk blocks,
 								// represented as a file
 	OpenFile* directoryFile;	// "Root" directory -- list of 
 								// file names, represented as a file
-
-	int tableSize;
 };
 
 #endif // FILESYS

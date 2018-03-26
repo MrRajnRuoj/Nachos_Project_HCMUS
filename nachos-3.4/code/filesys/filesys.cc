@@ -79,8 +79,6 @@
 
 FileSystem::FileSystem(bool format)
 {
-	this->tableSize = 10;
-
 	DEBUG('f', "Initializing the file system.\n");
 	if (format) {
 		BitMap *freeMap = new BitMap(NumSectors);
@@ -147,18 +145,19 @@ FileSystem::FileSystem(bool format)
 	// ------------------
 	// Tao bang openFile
 
-	this->openFileTable = new OpenFile*[this->tableSize];
-	this->index = 0;
+	this->openFileTable = new OpenFile*[10];
 
-	for (int i = 0; i < this->tableSize; ++i) {
+	for (int i = 0; i < 10; ++i) {
 		this->openFileTable[i] = NULL;
 	}
 
 	// Khoi tao bang OpenFile voi 2 vi tri dau cho stdin va stdout
-	this->Create("stdin", 0);
-	this->Create("stdout", 0);
+	//this->Create("stdin", 0);
+	//this->Create("stdout", 0);
 	this->Open("stdin", 2);
 	this->Open("stdout", 3);
+	this->Create("stdin", 0);
+	this->Create("stdout", 0);
 }
 
 //----------------------------------------------------------------------
@@ -245,30 +244,32 @@ FileSystem::Create(char *name, int initialSize)
 
 OpenFile* FileSystem::Open(char *name) {
 	Directory *directory = new Directory(NumDirEntries);
+	OpenFile *openFile = NULL;
 	int sector;
 
 	DEBUG('f', "Opening file %s\n", name);
 	directory->FetchFrom(directoryFile);
 	sector = directory->Find(name);
 	if (sector >= 0)
-		this->openFileTable[this->index] = new OpenFile(sector);	// name was found in directory 
+		openFile = new OpenFile(sector);	// name was found in directory 
 	delete directory;
 
-	return this->openFileTable[this->index++];				// return NULL if not found
+	return openFile;				// return NULL if not found
 }
 
 OpenFile* FileSystem::Open(char *name, int type) {
 	Directory *directory = new Directory(NumDirEntries);
+	OpenFile *openFile = NULL;
 	int sector;
 	
 	DEBUG('f', "Opening file %s\n", name);
 	directory->FetchFrom(directoryFile);
 	sector = directory->Find(name);
 	if (sector >= 0)
-		this->openFileTable[this->index] = new OpenFile(sector, type);	// name was found in directory 
+		openFile = new OpenFile(sector, type);	// name was found in directory 
 	delete directory;
 
-	return this->openFileTable[this->index++];				// return NULL if not found
+	return openFile;				// return NULL if not found
 }
 //----------------------------------------------------------------------
 // FileSystem::Remove
@@ -368,4 +369,26 @@ FileSystem::Print()
 	delete dirHdr;
 	delete freeMap;
 	delete directory;
+}
+
+int FileSystem::AddToTable(OpenFile* openFile) {
+	int result = -1;
+	for (int i = 2; i < 10; i++) {
+		if (openFileTable[i] == NULL) {
+			openFileTable[i] = openFile;
+			result = i;
+			break;
+		}
+	}
+
+	return result;
+}
+
+void FileSystem::DelFromTable(int fID) {
+	if (fID > 1 && fID < 10) {
+		if (openFileTable[fID] != NULL) {
+			delete openFileTable[fID];
+			openFileTable[fID] = NULL;
+		}
+	}
 }

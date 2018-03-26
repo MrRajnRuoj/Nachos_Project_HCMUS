@@ -61,6 +61,11 @@ public:
 
 	int Length() { Lseek(file, 0, 2); return Tell(file); }
 
+	int Seek(int position) { 
+		Lseek(file, position, 0);
+		this->currentOffset = Tell(file);
+		return this->currentOffset;
+	}
 private:
 	int file;
 	int currentOffset;
@@ -81,7 +86,7 @@ public:
 
 	~OpenFile();					// Close the file
 
-	void Seek(int position); 		// Set the position from which to start reading/writing -- UNIX lseek
+	int Seek(int position); 		// Set the position from which to start reading/writing -- UNIX lseek
 
 	int Read(char *into, int numBytes); // Read/write bytes from the file,
 										// starting at the implicit position.
