@@ -143,7 +143,7 @@ FileSystem::FileSystem(bool format)
 	}
 
 	// ------------------
-	// Tao bang openFile
+	// Tao bang mo ta file
 
 	this->openFileTable = new OpenFile*[10];
 
@@ -152,8 +152,7 @@ FileSystem::FileSystem(bool format)
 	}
 
 	// Khoi tao bang OpenFile voi 2 vi tri dau cho stdin va stdout
-	//this->Create("stdin", 0);
-	//this->Create("stdout", 0);
+
 	this->Open("stdin", 2);
 	this->Open("stdout", 3);
 	this->Create("stdin", 0);

@@ -58,6 +58,12 @@ void increasePC() {	// tang Program Counter
 	machine->WriteRegister(NextPCReg, counter + 4);
 }
 
+/* int Create(char *name)
+ * Input:
+ *	- name: ten file can tao
+ * Output:
+ *	- int: ket qua, 0: tao file thanh cong, -1: tao file that bai
+ */
 void createFile_Handler() {
 	int virtAddr;
 	char* fileName;
@@ -87,47 +93,68 @@ void createFile_Handler() {
 		delete fileName;
 		return;
 	}
-	machine->WriteRegister(2, 0); // tra ve thanh cong
+	machine->WriteRegister(2, 0); // Tra ve thanh cong
 
 	delete fileName;
 }
 
+
+/* void Printf(char* buffer)
+ * Input: 
+ *	- buffer: chuoi can in ra console
+ * Output: void
+ */
 void printf_Handler() {
-	int virtAddr = machine->ReadRegister(4);
+	int virtAddr = machine->ReadRegister(4);	// Doc tham so luu chuoi buffer can in
 	char* buff = User2System(virtAddr, 256);
 
 	if (buff == NULL) {
 		return;
 	}
-	gSynchConsole->Write(buff, strlen(buff));
+	gSynchConsole->Write(buff, strlen(buff));	// Ghi ra console chuoi buffer
 
 	delete[] buff;
 }
 
+/* void Scanf(char* buffer, int length)
+ * Input: 
+ *	- buffer: luu chuoi doc duoc tu console
+ *	- length: do dai toi da co the doc duoc
+ * Output: void
+ */
 void scanf_Handler() {
-	int buffAddr = machine->ReadRegister(4);
-	int length = machine->ReadRegister(5);
+	int buffAddr = machine->ReadRegister(4);	
+	int length = machine->ReadRegister(5);		
 	char* buff;
 
 	if (length < 0) {
 		return;
 	}
 
+	// Khoi tao chuoi rong
 	buff = new char[length];
 	if (buff == NULL) {
 		return;
 	}
 	memset(buff, 0, length);
-	gSynchConsole->Read(buff, length);
-	System2User(buffAddr, length, buff);
+
+	gSynchConsole->Read(buff, length);		// Doc chuoi tu console
+	System2User(buffAddr, length, buff);	// Luu chuoi sang user space
 
 	delete[] buff;
 }
 
+/* OpenFileID Open(char *name, int type)
+ * Input:
+ *	- name: ten file can mo
+ *	- type: loai chuc nang, 0: doc va ghi, 1: chi doc, 2: input console, 3: output console
+ * Output: 
+ *	- OpenFileID: vi tri trong bang mo ta file
+ */
 void openFile_Handler() {
-	int virtAddr = machine->ReadRegister(4);
-	int type = machine->ReadRegister(5);
-	char* fileName = User2System(virtAddr, MaxFileLength);
+	int virtAddr = machine->ReadRegister(4);		// Doc tham so ten file
+	int type = machine->ReadRegister(5);			// Doc type
+	char* fileName = User2System(virtAddr, MaxFileLength);	// Doc ten file
 
 	if (fileName == NULL) {
 		printf("\nLoi: Khong du bo nho trong he thong!");
@@ -138,10 +165,10 @@ void openFile_Handler() {
 		machine->WriteRegister(2, -1);
 	}
 	else {
-		if (type == 0 || type == 1) {
+		if (type == 0 || type == 1) {	// Xu ly mo file binh thuong de doc hoac ghi
 			OpenFile* openFile = fileSystem->Open(fileName, type);
 			if (openFile != NULL) {
-				int fID = fileSystem->AddToTable(openFile);
+				int fID = fileSystem->AddToTable(openFile);	// Them vao bang mo ta file
 				machine->WriteRegister(2, fID);
 			}
 			else {
@@ -149,10 +176,10 @@ void openFile_Handler() {
 				machine->WriteRegister(2, -1);
 			}
 		}
-		else if (type == 2 || strcpy(fileName, "stdin") == 0) {
+		else if (type == 2 || strcpy(fileName, "stdin") == 0) {	// Xu ly cho input console
 			machine->WriteRegister(2, 0);
 		}
-		else if (type == 3 || strcpy(fileName, "stdout") == 0) {
+		else if (type == 3 || strcpy(fileName, "stdout") == 0) {	// Xy ly cho output console
 			machine->WriteRegister(2, 1);
 		}
 		else {
@@ -164,6 +191,11 @@ void openFile_Handler() {
 	delete[] fileName;
 }
 
+/* void CloseFile(OpenFileID id)
+ * Input:
+ *	- id: id cua file (vi tri trong bang mo ta file)
+ * Output: void
+ */
 void closeFile_Handler() {
 	int fileID = machine->ReadRegister(4);
 
@@ -171,11 +203,19 @@ void closeFile_Handler() {
 		machine->WriteRegister(2, -1);
 	}
 	else {
-		fileSystem->DelFromTable(fileID);
+		fileSystem->DelFromTable(fileID);	// Xoa khoi bang mo ta file
 		machine->WriteRegister(2, 0);
 	}
 }
 
+/* int Read(char *buffer, int charcount, OpenFileID id)
+ * Input:
+ *	- buffer: chuoi doc duoc tu file
+ *	- charcount: so byte toi da co the doc duoc
+ *	- id: id cua file (vi tri trong bang mo ta file)
+ * Output: 
+ *	- int: so byte da doc thanh cong
+ */
 void readFile_Handler() {
 	int virtAddr = machine->ReadRegister(4);
 	int charcount = machine->ReadRegister(5);
@@ -207,10 +247,10 @@ void readFile_Handler() {
 			}
 		}
 		else {	// Doc file
-			size = fileSystem->openFileTable[fID]->Read(buffer, charcount);
+			size = fileSystem->openFileTable[fID]->Read(buffer, charcount);	// Doc file va luu vao buffer
 			int fileLength = fileSystem->openFileTable[fID]->Length();
-			System2User(virtAddr, size, buffer);
-			if (size == fileLength) {
+			System2User(virtAddr, size, buffer);		// Chuyen buffer tu system space sang user space
+			if (size == fileLength) {	// Doc den cuoi file
 				machine->WriteRegister(2, -2);
 			}
 			else {
@@ -222,6 +262,14 @@ void readFile_Handler() {
 	delete[] buffer;
 }
 
+/* int Write(char *buffer, int charcount, OpenFileID id)
+ * Input:
+ *	- buffer: chuoi duoc ghi vao file
+ *	- charcount: so byte toi da co the ghi duoc
+ *	- id: id cua file (vi tri trong bang mo ta file)
+ * Output:
+ *	- int: so byte da ghi thanh cong
+ */
 void writeFile_Handler() {
 	int virtAddr = machine->ReadRegister(4);
 	int charcount = machine->ReadRegister(5);
@@ -260,7 +308,7 @@ void writeFile_Handler() {
 			size = fileSystem->openFileTable[fID]->Write(buffer, charcount);
 			int buffLength = strlen(buffer);
 
-			if (size == buffLength) {
+			if (size == buffLength) {	// Ghi het chuoi buffer vao file
 				printf("\nSize: %d", size);
 				machine->WriteRegister(2, -2);
 			}
@@ -273,6 +321,13 @@ void writeFile_Handler() {
 	delete[] buffer;
 }
 
+/* int Seek(int pos, OpenFileID id)
+ * Input:
+ *	- pos: vi tri chuyen con tro file 
+ *	- id: id cua file (vi tri trong bang mo ta file)
+ * Output:
+ *	- int: vi tri da chuyen den
+ */
 void seek_Handler(){
 	int pos = machine->ReadRegister(4);
 	int fID = machine->ReadRegister(5);
@@ -289,7 +344,7 @@ void seek_Handler(){
 		machine->WriteRegister(2, -1);
 	}
 	else {
-		if (pos == -1) {
+		if (pos == -1) {	// Chuyen den cuoi file
 			pos = fileSystem->openFileTable[fID]->Length();
 		}
 		fileSystem->openFileTable[fID]->Seek(pos);

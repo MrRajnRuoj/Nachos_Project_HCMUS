@@ -31,9 +31,9 @@
 #define SC_Yield	10
 
 // Mot so syscall khac
-#define SC_Printf	11
-#define SC_Scanf	12
-#define SC_Seek		13
+#define SC_Printf	11	// Xuat chuoi ra console
+#define SC_Scanf	12	// Doc chuoi tu console
+#define SC_Seek		13	
 
 
 #ifndef IN_ASM
@@ -98,10 +98,10 @@ int Create(char *name);
 /* Open the Nachos file "name", and return an "OpenFileId" that can 
  * be used to read and write to the file.
  */
-OpenFileID Open(char *name, int type);
+OpenFileID Open(char *name, int type);	// Tra ve vi tri trong bang mo ta file
 
 /* Write "size" bytes from "buffer" to the open file. */
-int Write(char *buffer, int charcount, OpenFileID id);
+int Write(char *buffer, int charcount, OpenFileID id);	// Tra ve so byte ghi duoc
 
 /* Read "size" bytes from the open file into "buffer".  
  * Return the number of bytes actually read -- if the open file isn't
@@ -109,7 +109,7 @@ int Write(char *buffer, int charcount, OpenFileID id);
  * characters to read, return whatever is available (for I/O devices, 
  * you should always wait until you can return at least one character).
  */
-int Read(char *buffer, int size, OpenFileID id);
+int Read(char *buffer, int charcount, OpenFileID id);	// Tra ve so byte doc duoc
 
 /* Close the file, we're done reading and writing to it. */
 void CloseFile(OpenFileID id);
@@ -129,8 +129,10 @@ void Fork(void (*func)());
  */
 void Yield();		
 
-void Printf(char* buffer);
-void Scanf(char* buffer, int length);
+void Printf(char* buffer);	// Xuat chuoi buffer ra console
+
+void Scanf(char* buffer, int length);	// Doc chuoi tu console luu vao buffer voi do dai toi da length
+
 int Seek(int pos, OpenFileID id);
 
 #endif /* IN_ASM */

@@ -115,7 +115,8 @@ class Machine {
 
     int ReadRegister(int num);	// read the contents of a CPU register
 
-    void WriteRegister(int num, int value);	// store a value into a CPU register
+    void WriteRegister(int num, int value);
+				// store a value into a CPU register
 
 
 // Routines internal to the machine simulation -- DO NOT call these 

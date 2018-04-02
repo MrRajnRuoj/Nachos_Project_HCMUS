@@ -46,6 +46,9 @@ public:
 	OpenFile** openFileTable;	// Bang mo ta file
 
 	FileSystem(bool format) {
+		/* Khoi tao bang mo ta file va them vao 2 phan tu dau 
+		 * cho inputconsole va output console
+		 */
 		this->openFileTable = new OpenFile*[10];
 
 		for (int i = 0; i < 10; ++i) {
@@ -60,6 +63,8 @@ public:
 	}
 
 	~FileSystem() {
+		// Xoa bang mo ta file
+
 		for (int i = 0; i < 10; ++i) {
 			delete openFileTable[i];
 			openFileTable[i] = NULL;
@@ -91,6 +96,7 @@ public:
 
 	bool Remove(char *name) { return Unlink(name) == 0; }
 
+	// Ham them OpenFile vao bang mo ta file
 	int AddToTable(OpenFile* openFile) {
 		int result = -1;
 		for (int i = 2; i < 10; i++) {
@@ -104,6 +110,7 @@ public:
 		return result;
 	}
 
+	// Ham xoa file dang mo khoi bang mo ta file
 	void DelFromTable(int fID) {
 		if (fID > 1 && fID < 10) {
 			if (openFileTable[fID] != NULL) {
@@ -117,7 +124,7 @@ public:
 #else // FILESYS
 class FileSystem {
 public:
-	OpenFile** openFileTable;	// Bang mo ta file
+	OpenFile** openFileTable;		// Bang mo ta file
 
 	FileSystem(bool format);		// Initialize the file system.
 									// Must be called *after* "synchDisk" 
@@ -128,18 +135,19 @@ public:
 
 	bool Create(char *name, int initialSize);	// Create a file (UNIX creat)
 
-	OpenFile* Open(char *name); 	// Open a file (UNIX open)
+	OpenFile* Open(char *name); 			// Open a file (UNIX open)
 
-	OpenFile* Open(char *name, int type); // Mo file voi type tuong ung
+	OpenFile* Open(char *name, int type);	// Mo file voi type tuong ung
 
-	bool Remove(char *name);  		// Delete a file (UNIX unlink)
+	bool Remove(char *name);  				// Delete a file (UNIX unlink)
 
-	void List();					// List all the files in the file system
+	void List();							// List all the files in the file system
 
-	void Print();					// List all the files and their contents
+	void Print();							// List all the files and their contents
 
-	int AddToTable(OpenFile* openFile);
-	void DelFromTable(int fID);
+	int AddToTable(OpenFile* openFile);		// Ham them OpenFile vao bang mo ta file
+
+	void DelFromTable(int fID);				// Ham xoa file dang mo khoi bang mo ta file
 
 private:
 	OpenFile* freeMapFile;		// Bit map of free disk blocks,

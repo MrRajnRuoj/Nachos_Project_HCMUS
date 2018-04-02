@@ -82,12 +82,17 @@ class Thread {
 
   public:
     Thread(char* debugName);		// initialize a Thread 
-    ~Thread(); 				// deallocate a Thread
-					// NOTE -- thread being deleted
-					// must not be running when delete 
-					// is called
-
-    // basic thread operations
+	~Thread(); 						// deallocate a Thread
+									// NOTE -- thread being deleted
+									// must not be running when delete 
+									// is called
+	int processID;
+	int exitStatus;
+	void FreeSpace() {
+		if (space != NULL)
+			delete space;
+	}
+	// basic thread operations
 
     void Fork(VoidFunctionPtr func, int arg); 	// Make thread run (*func)(arg)
     void Yield();  				// Relinquish the CPU if any 
